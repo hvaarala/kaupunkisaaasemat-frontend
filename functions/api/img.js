@@ -1,4 +1,4 @@
-cat > functions/api/img.js <<'EOF'
+
 export async function onRequest(context) {
   const targetBase = "https://oulu-cam-archive.harri-vaarala.workers.dev";
   const url = new URL(context.request.url);
@@ -11,4 +11,5 @@ export async function onRequest(context) {
     headers: context.request.headers,
   });
 }
-EOF
+
+
