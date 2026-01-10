@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Oulu – Weather Stations Dashboard</title>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      margin: 0;
+      background: #0b1220;
+      color: #e6edf7;
+    }
+    header {
+      padding: 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+    h1 { font-size: 18px; margin: 0; }
+    .sub {
+      opacity: .75;
+      font-size: 13px;
+      margin-top: 6px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+
+    #stations {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stationsGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 20px rgba(0,0,0,.25);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+
+    .kpi {
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+    }
+
+    .kpi .label { font-size: 12px; opacity: .75; }
+    .kpi .value { font-size: 22px; margin-top: 6px; }
+
+    .cams {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      display: block;
+    }
+
+    button {
+      background: #2563eb;
+      color: white;
+      border: 0;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    a { color: inherit; text-decoration: none; }
+    a:hover img { outline: 2px solid rgba(147,197,253,.6); }
+
+    .muted { opacity: .75; font-size: 12px; }
+    .err { color: #fecaca; white-space: pre-wrap; margin-bottom: 14px; }
+    .sectionTitle { font-size: 14px; opacity: .9; margin-top: 10px; }
+    code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 8px; }
+
+    /* History view (air temp localStorage) */
+    .history {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .history h3 {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      opacity: .9;
+      letter-spacing: .2px;
+    }
+    .historyTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .historyTable th, .historyTable td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      text-align: left;
+    }
+    .historyTable th {
+      background: rgba(255,255,255,.03);
+      opacity: .9;
+      font-weight: 600;
+    }
+    .historyTable tr:last-child td { border-bottom: 0; }
+
+    /* Coldest highlight */
+    .coldest {
+      color: #ff4d4d;
+      font-weight: 800;
+    }
+
+    /* Meteoblue widget container */
+    .widgetWrap {
+      display: flex;
+      justify-content: center;
+    }
+    .meteoblueFrame {
+      width: 460px;
+      height: 572px;
+      border: 0;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    @media (max-width: 520px) {
+      .meteoblueFrame { width: 100%; }
+    }
+
+    /* ========= NEW: Camera archive (R2) ========= */
+    .camArchive {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .camArchiveHeader {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .camArchive h3 {
+      margin: 0;
+      font-size: 13px;
+      opacity: .9;
+      letter-spacing: .2px;
+    }
+    .camArchiveControls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .camArchive select,
+    .camArchive input[type="date"] {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      color: #e6edf7;
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      outline: none;
+    }
+    .camArchiveMeta {
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: .75;
+    }
+    .camArchiveErr {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #fecaca;
+      white-space: pre-wrap;
+    }
+    .camArchiveGrid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .thumbCard {
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,.03);
+    }
+    .thumbCard img {
+      border: 0;
+      border-radius: 0;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      display: block;
+      width: 100%;
+      background: rgba(255,255,255,.02);
+    }
+    .thumbFooter {
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      opacity: .85;
+    }
+    .camArchiveEmpty {
+      grid-column: 1 / -1;
+      padding: 12px;
+      border: 1px dashed rgba(255,255,255,.15);
+      border-radius: 12px;
+      opacity: .8;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Oulu – Weather Stations Dashboard</h1>
+  <div class="sub">
+    <span id="status">Ready</span>
+    <button id="refreshBtn">Refresh now</button>
+    <span class="muted">Auto-refresh every 5 min</span>
+  </div>
+</header>
+
+<main>
+  <div id="error" class="err"></div>
+  <div id="stations"></div>
+</main>
+
+<script>
+const ENDPOINT = "https://api.oulunliikenne.fi/proxy/graphql";
+
+/**
+ * ✅ Your Cloudflare Worker base URL for signed camera archive access.
+ * Must serve:
+ *   GET /api/list?mode=raw|hourly&station=02&cam=1&date=YYYY-MM-DD
+ *   GET /api/img?key=...&exp=...&sig=...
+ */
+const ARCHIVE_WORKER_BASE = "https://oulu-cam-archive.harri-vaarala.workers.dev";
+
+const CITY_STATIONS = [
+  { id: "02", name: "Kembaana" },
+  { id: "01", name: "Maikkulan Baana" },
+  { id: "03", name: "Linnanmaan Baana" }
+];
+
+// Road weather stations to include
+const TIESAA_STATIONS = ["12022", "12017"];
+
+const REFRESH_SECONDS = 300;
+
+// History storage
+const HISTORY_KEEP_HOURS = 48;
+// History view: last 6 hours at 1-hour interval
+const HISTORY_VIEW_HOURS = 6;
+
+const QUERY = `
+query {
+  cityWeatherStations {
+    weatherStationId
+    name
+    sensorValues { name sensorValue sensorUnit measuredTime }
+    cameras { cameraId imageUrl }
+  }
+  weatherStations {
+    weatherStationId
+    name
+    collectionStatus
+    measuredTime
+    sensorValues { name sensorValue sensorUnit }
+  }
+}`;
+
+const stationsEl = document.getElementById("stations");
+const statusEl = document.getElementById("status");
+const errorEl = document.getElementById("error");
+const refreshBtn = document.getElementById("refreshBtn");
+
+function fmtLocalTime(isoUtc) {
+  if (!isoUtc) return "—";
+  return new Intl.DateTimeFormat("fi-FI", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  }).format(new Date(isoUtc));
+}
+
+function fmtLocalHourLabel(msUtc) {
+  return new Intl.DateTimeFormat("fi-FI", {
+    timeZone: "Europe/Helsinki",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(msUtc));
+}
+
+function pickCity(values, key) {
+  const v = (values || []).find(x => x.name === key);
+  if (!v) return null;
+  return { value: v.sensorValue, unit: v.sensorUnit ?? "", time: v.measuredTime };
+}
+
+function sensorMap(sensorValues) {
+  const m = new Map();
+  for (const s of (sensorValues || [])) m.set(s.name, s);
+  return m;
+}
+function getValObj(m, key) {
+  const s = m.get(key);
+  if (!s) return null;
+  return { value: s.sensorValue, unit: s.sensorUnit ?? "" };
+}
+function getValStr(m, key) {
+  const o = getValObj(m, key);
+  if (!o) return "—";
+  return `${o.value} ${o.unit}`.trim();
+}
+
+function fmtNum(val, digits=1) {
+  const n = Number(val);
+  if (!Number.isFinite(n)) return null;
+  return n.toFixed(digits);
+}
+
+/* -----------------------
+   Local history storage (CITY: only AIR temp)
+------------------------*/
+
+function histKey(stationId) { return `oulu_cityws_hist_air_${stationId}`; }
+
+function loadHistory(stationId) {
+  try {
+    const raw = localStorage.getItem(histKey(stationId));
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(stationId, records) {
+  try { localStorage.setItem(histKey(stationId), JSON.stringify(records)); } catch {}
+}
+
+function pruneHistory(records, keepHours) {
+  const cutoff = Date.now() - keepHours * 60 * 60 * 1000;
+  return records.filter(r => typeof r.t === "number" && r.t >= cutoff);
+}
+
+function upsertAirSnapshot(stationId, measuredTimeIsoUtc, airObj) {
+  if (!measuredTimeIsoUtc) return;
+  const t = Date.parse(measuredTimeIsoUtc);
+  if (!Number.isFinite(t)) return;
+
+  const air = airObj?.value;
+  if (air == null) return;
+
+  let hist = loadHistory(stationId);
+  const exists = hist.some(r => r.t === t);
+  if (!exists) {
+    hist.push({ t, air });
+    hist.sort((a,b) => a.t - b.t);
+  }
+  hist = pruneHistory(hist, HISTORY_KEEP_HOURS);
+  saveHistory(stationId, hist);
+}
+
+function floorToHourUtc(msUtc) {
+  return Math.floor(msUtc / 3600000) * 3600000;
+}
+
+function pickHourlyPoint(hist, hourMsUtc) {
+  if (!hist.length) return null;
+
+  const windowMs = 35 * 60 * 1000;
+  let best = null;
+  let bestDist = Infinity;
+
+  for (const r of hist) {
+    const dist = Math.abs(r.t - hourMsUtc);
+    if (dist <= windowMs && dist < bestDist) {
+      best = r;
+      bestDist = dist;
+    }
+  }
+  if (best) return best;
+
+  const fallbackWindow = 2 * 60 * 60 * 1000;
+  let last = null;
+  for (const r of hist) {
+    if (r.t <= hourMsUtc && hourMsUtc - r.t <= fallbackWindow) last = r;
+  }
+  return last;
+}
+
+function renderHistoryView(stationId) {
+  const hist = loadHistory(stationId).sort((a,b) => a.t - b.t);
+  if (!hist.length) {
+    return `
+      <div class="history">
+        <h3>History (last 6 hours, hourly)</h3>
+        <div class="muted">No history yet. Leave the page open to collect data.</div>
+      </div>
+    `;
+  }
+
+  const now = Date.now();
+  const endHour = floorToHourUtc(now);
+  const startHour = endHour - (HISTORY_VIEW_HOURS - 1) * 3600000;
+
+  const points = [];
+  for (let h = startHour; h <= endHour; h += 3600000) {
+    const p = pickHourlyPoint(hist, h);
+    const air = (p && p.air != null) ? Number(p.air) : null;
+    points.push({ hourMsUtc: h, air });
+  }
+
+  const airVals = points.map(p => p.air).filter(v => v != null && Number.isFinite(v));
+  const minAir = airVals.length ? Math.min(...airVals) : null;
+
+  const rows = points.map(p => {
+    const label = fmtLocalHourLabel(p.hourMsUtc);
+    if (p.air == null || !Number.isFinite(p.air)) {
+      return `<tr><td>${label}</td><td>—</td></tr>`;
+    }
+    const isMin = (minAir != null && p.air === minAir);
+    const cell = `<span class="${isMin ? "coldest" : ""}">${p.air.toFixed(1)} °C</span>`;
+    return `<tr><td>${label}</td><td>${cell}</td></tr>`;
+  });
+
+  return `
+    <div class="history">
+      <h3>History (last 6 hours, hourly)</h3>
+      <table class="historyTable">
+        <thead>
+          <tr>
+            <th>Time (Helsinki)</th>
+            <th>Air temp</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.join("")}
+        </tbody>
+      </table>
+      <div class="muted" style="margin-top:8px;">
+        History is collected in your browser (localStorage) while this page is open.
+      </div>
+    </div>
+  `;
+}
+
+/* -----------------------
+   KPI configs (humidity removed)
+------------------------*/
+
+// City KPIs (no road temp, no humidity)
+const CITY_KPIS = [
+  ["Air temp", "AIR_TEMPERATURE"],
+  ["Wind speed", "WIND_SPEED"],
+  ["Snow depth", "SNOW_DEPTH"]
+];
+
+// Tiesää KPIs (no humidity, no visibility; 24h min+max combined)
+const TIESAA_KPIS = [
+  ["Air temp", "ILMA"],
+  ["Air temp 24h (min–max)", ["ILMAN_LÄMPÖTILA_24H_MIN", "ILMAN_LÄMPÖTILA_24H_MAX"]],
+  ["Road temp", "TIE_1"],
+  ["Wind avg", "KESKITUULI"],
+  ["Wind max", "MAKSIMITUULI"]
+];
+
+function kpi(label, valueHtml) {
+  return `<div class="kpi"><div class="label">${label}</div><div class="value">${valueHtml}</div></div>`;
+}
+
+/* -----------------------
+   NEW: Camera archive browser (R2) helpers
+------------------------*/
+
+function normalizeBase(url) {
+  return (url || "").replace(/\/+$/, "");
+}
+
+function todayLocalISODate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function thumbCardHtml(item) {
+  const safeUrl = (item.url || "").replace(/"/g, "&quot;");
+  const label = item.time || "";
+  return `
+    <div class="thumbCard">
+      <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="Open full image">
+        <img src="${safeUrl}" loading="lazy" alt="archive ${label}">
+      </a>
+      <div class="thumbFooter">
+        <div>${label}</div>
+        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">Open</a>
+      </div>
+    </div>
+  `;
+}
+
+async function loadCamArchiveInto(blockEl) {
+  const base = normalizeBase(ARCHIVE_WORKER_BASE);
+  const station = blockEl.dataset.station;
+  const modeSel = blockEl.querySelector(".js-ca-mode");
+  const camSel  = blockEl.querySelector(".js-ca-cam");
+  const dateInp = blockEl.querySelector(".js-ca-date");
+  const btn     = blockEl.querySelector(".js-ca-load");
+  const metaEl  = blockEl.querySelector(".js-ca-meta");
+  const errEl   = blockEl.querySelector(".js-ca-err");
+  const gridEl  = blockEl.querySelector(".js-ca-grid");
+
+  const mode = modeSel.value;
+  const cam = camSel.value;
+  const date = dateInp.value;
+
+  errEl.textContent = "";
+  metaEl.textContent = "Loading archive…";
+  gridEl.innerHTML = "";
+  btn.disabled = true;
+
+  try {
+    if (!base.startsWith("http")) throw new Error("ARCHIVE_WORKER_BASE is not a valid URL.");
+    if (!station || !cam || !date) throw new Error("Missing station/camera/date.");
+
+    const api = new URL(base + "/api/list");
+    api.searchParams.set("mode", mode);
+    api.searchParams.set("station", station);
+    api.searchParams.set("cam", cam);
+    api.searchParams.set("date", date);
+    api.searchParams.set("ttl", "600"); // signed URL TTL (seconds)
+
+    const res = await fetch(api.toString());
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const items = data.items || [];
+    metaEl.textContent = `Loaded ${items.length} images · ${data.mode} · ${data.date} · Cam ${data.cam}`;
+
+    if (!items.length) {
+      gridEl.innerHTML = `<div class="camArchiveEmpty">No archived images found for this date. (Try another day; archive folders are by UTC date.)</div>`;
+      return;
+    }
+
+    gridEl.innerHTML = items.map(thumbCardHtml).join("");
+  } catch (e) {
+    metaEl.textContent = "";
+    errEl.textContent = String(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function initCamArchiveUI() {
+  document.querySelectorAll(".camArchive[data-station]").forEach(blockEl => {
+    const camsJson = blockEl.dataset.cams || "[]";
+    let cams = [];
+    try { cams = JSON.parse(camsJson); } catch { cams = []; }
+
+    const camSel  = blockEl.querySelector(".js-ca-cam");
+    const dateInp = blockEl.querySelector(".js-ca-date");
+    const btn     = blockEl.querySelector(".js-ca-load");
+
+    // Populate camera dropdown
+    camSel.innerHTML = (cams || []).map(c => `<option value="${c}">Camera ${c}</option>`).join("");
+
+    // Default date = today
+    dateInp.value = todayLocalISODate();
+
+    btn.addEventListener("click", () => loadCamArchiveInto(blockEl));
+  });
+}
+
+/* -----------------------
+   Rendering cards
+------------------------*/
+
+function renderCityCard(st, isColdestNow) {
+  const time = st.sensorValues?.[0]?.measuredTime;
+
+  const airObj = pickCity(st.sensorValues, "AIR_TEMPERATURE");
+  upsertAirSnapshot(st.weatherStationId, time, airObj);
+
+  const kpisHtml = CITY_KPIS.map(([label, key]) => {
+    const obj = pickCity(st.sensorValues, key);
+    if (!obj) return kpi(label, "—");
+
+    if (key === "AIR_TEMPERATURE") {
+      const v = fmtNum(obj.value, 1);
+      const unit = (obj.unit || "°C").trim();
+      const valHtml = v == null ? "—" : `<span class="${isColdestNow ? "coldest" : ""}">${v} ${unit}</span>`;
+      return kpi(label, valHtml);
+    }
+
+    const val = (obj.value == null) ? "—" : `${obj.value} ${obj.unit ?? ""}`.trim();
+    return kpi(label, val);
+  }).join("");
+
+  const camsHtml = (st.cameras || []).length
+    ? `<div class="cams">
+        ${(st.cameras || []).map(c => `
+          <div>
+            <a href="${c.imageUrl}" target="_blank" rel="noopener noreferrer" title="Open full image">
+              <img src="${c.imageUrl}?t=${Date.now()}" alt="${st.name} – Camera ${c.cameraId}">
+            </a>
+            <div class="muted">Camera ${c.cameraId} (click to open)</div>
+          </div>
+        `).join("")}
+      </div>`
+    : `<div class="muted" style="margin-top:10px;">No cameras listed for this station.</div>`;
+
+  // NEW: archive block with mode/cam/date controls
+  const camIds = (st.cameras || []).map(c => c.cameraId).sort((a,b)=>a-b);
+  const camsDataAttr = JSON.stringify(camIds).replace(/"/g, "&quot;");
+
+  const camArchiveHtml = (camIds.length)
+    ? `
+      <div class="camArchive" data-station="${st.weatherStationId}" data-cams="${camsDataAttr}">
+        <div class="camArchiveHeader">
+          <h3>Camera archive (R2)</h3>
+          <div class="camArchiveControls">
+            <select class="js-ca-mode" title="Mode">
+              <option value="raw">raw (5 min)</option>
+              <option value="hourly">hourly</option>
+            </select>
+            <select class="js-ca-cam" title="Camera"></select>
+            <input class="js-ca-date" type="date" title="Date">
+            <button class="js-ca-load" type="button">Load</button>
+          </div>
+        </div>
+        <div class="camArchiveMeta js-ca-meta"></div>
+        <div class="camArchiveErr js-ca-err"></div>
+        <div class="camArchiveGrid js-ca-grid"></div>
+        <div class="muted" style="margin-top:8px;">
+          Uses signed URLs from <code>${ARCHIVE_WORKER_BASE}</code>. (Pick a different date if you’re near midnight; folders are UTC.)
+        </div>
+      </div>
+    `
+    : `
+      <div class="camArchive">
+        <h3>Camera archive (R2)</h3>
+        <div class="muted">No cameras available for archive browsing.</div>
+      </div>
+    `;
+
+  return `
+  <section class="card">
+    <h2 style="margin-top:0">${st.name}</h2>
+    <div class="muted">Measured: ${fmtLocalTime(time)}</div>
+
+    <div class="grid" style="margin-top:10px">
+      ${kpisHtml}
+    </div>
+
+    ${camsHtml}
+
+    ${camArchiveHtml}
+
+    ${renderHistoryView(st.weatherStationId)}
+  </section>`;
+}
+
+function renderTieCard(ws, isColdestNow) {
+  const m = sensorMap(ws.sensorValues);
+
+  const kpisHtml = TIESAA_KPIS.map(([label, keyOrKeys]) => {
+    if (Array.isArray(keyOrKeys)) {
+      const minObj = getValObj(m, keyOrKeys[0]);
+      const maxObj = getValObj(m, keyOrKeys[1]);
+
+      const minN = minObj ? fmtNum(minObj.value, 1) : null;
+      const maxN = maxObj ? fmtNum(maxObj.value, 1) : null;
+
+      const unit = (minObj?.unit || maxObj?.unit || "°C").trim();
+      const val = (minN == null && maxN == null)
+        ? "—"
+        : `${minN ?? "—"} – ${maxN ?? "—"} ${unit}`.trim();
+
+      return kpi(label, val);
+    }
+
+    if (!m.has(keyOrKeys)) return kpi(label, "—");
+
+    if (keyOrKeys === "ILMA") {
+      const obj = getValObj(m, "ILMA");
+      const v = obj ? fmtNum(obj.value, 1) : null;
+      const unit = (obj?.unit || "°C").trim();
+      const valHtml = v == null ? "—" : `<span class="${isColdestNow ? "coldest" : ""}">${v} ${unit}</span>`;
+      return kpi(label, valHtml);
+    }
+
+    return kpi(label, getValStr(m, keyOrKeys));
+  }).join("");
+
+  return `
+  <section class="card">
+    <h2 style="margin-top:0">${ws.name}</h2>
+    <div class="muted">
+      ID: ${ws.weatherStationId} ·
+      Status: ${ws.collectionStatus ?? "—"} ·
+      Measured: ${fmtLocalTime(ws.measuredTime)}
+    </div>
+
+    <div class="grid" style="margin-top:10px">
+      ${kpisHtml}
+    </div>
+  </section>`;
+}
+
+/* -----------------------
+   Meteoblue widget card
+------------------------*/
+
+function renderMeteoblueCard() {
+  return `
+    <section class="card">
+      <h2 style="margin-top:0">Forecast – Liminka (meteoblue)</h2>
+      <div class="widgetWrap" style="margin-top:10px;">
+        <iframe
+          class="meteoblueFrame"
+          src="https://www.meteoblue.com/en/weather/widget/three/liminka_finland_647930?geoloc=fixed&nocurrent=0&noforecast=0&days=4&tempunit=CELSIUS&windunit=METER_PER_SECOND&layout=image&user_key=3a9340cb81369a79&embed_key=81c01141b6fe77b7&sig=3f9bd3a0bc8b9783a71a35dc50808667e193ba9433549bad3d78a4473d7abb97"
+          frameborder="0"
+          scrolling="NO"
+          allowtransparency="true"
+          sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
+          title="meteoblue forecast widget"
+        ></iframe>
+      </div>
+      <div class="muted" style="margin-top:10px;">
+        <!-- DO NOT REMOVE THIS LINK -->
+        <a href="https://www.meteoblue.com/en/weather/week/index" target="_blank" rel="noopener">meteoblue</a>
+      </div>
+    </section>
+  `;
+}
+
+/* -----------------------
+   Coldest finders
+------------------------*/
+
+function findColdestCityStationId(cityAll) {
+  let coldestId = null;
+  let coldestVal = Infinity;
+
+  for (const s of CITY_STATIONS) {
+    const st = cityAll.find(x => x.weatherStationId === s.id) || cityAll.find(x => x.name === s.name);
+    if (!st) continue;
+    const airObj = pickCity(st.sensorValues, "AIR_TEMPERATURE");
+    const v = Number(airObj?.value);
+    if (Number.isFinite(v) && v < coldestVal) {
+      coldestVal = v;
+      coldestId = st.weatherStationId;
+    }
+  }
+  return coldestId;
+}
+
+function findColdestTieStationId(tieAll) {
+  let coldestId = null;
+  let coldestVal = Infinity;
+
+  const selected = tieAll.filter(w => TIESAA_STATIONS.includes(w.weatherStationId));
+  for (const ws of selected) {
+    const m = sensorMap(ws.sensorValues);
+    const obj = getValObj(m, "ILMA");
+    const v = Number(obj?.value);
+    if (Number.isFinite(v) && v < coldestVal) {
+      coldestVal = v;
+      coldestId = ws.weatherStationId;
+    }
+  }
+  return coldestId;
+}
+
+/* -----------------------
+   Fetch cycle
+------------------------*/
+
+async function fetchData() {
+  refreshBtn.disabled = true;
+  statusEl.textContent = "Fetching…";
+  errorEl.textContent = "";
+
+  try {
+    const res = await fetch(ENDPOINT,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ query: QUERY })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+    const json = await res.json();
+    if (json.errors) throw new Error(json.errors.map(e=>e.message).join("\n"));
+
+    const cityAll = json.data.cityWeatherStations || [];
+    const tieAll  = json.data.weatherStations || [];
+
+    const coldestCityId = findColdestCityStationId(cityAll);
+    const coldestTieId  = findColdestTieStationId(tieAll);
+
+    stationsEl.innerHTML = "";
+
+    // City section
+    stationsEl.insertAdjacentHTML("beforeend", `<div class="sectionTitle">Kaupunkisääasemat</div>`);
+    const cityGrid = document.createElement("div");
+    cityGrid.className = "stationsGrid";
+    cityGrid.innerHTML = CITY_STATIONS.map(s=>{
+      const st = cityAll.find(x=>x.weatherStationId===s.id) || cityAll.find(x=>x.name===s.name);
+      if (!st) {
+        return `
+          <section class="card">
+            <h2 style="margin-top:0">${s.name}</h2>
+            <div class="muted">Not found in API response (looked for id="${s.id}").</div>
+          </section>
+        `;
+      }
+      return renderCityCard(st, st.weatherStationId === coldestCityId);
+    }).join("");
+    stationsEl.appendChild(cityGrid);
+
+    // Road section
+    stationsEl.insertAdjacentHTML("beforeend", `<div class="sectionTitle">Tiesääasemat (selected)</div>`);
+    const tieGrid = document.createElement("div");
+    tieGrid.className = "stationsGrid";
+    const selectedTie = tieAll.filter(w => TIESAA_STATIONS.includes(w.weatherStationId));
+    tieGrid.innerHTML = selectedTie.length
+      ? selectedTie.map(ws => renderTieCard(ws, ws.weatherStationId === coldestTieId)).join("")
+      : `
+        <section class="card">
+          <h2 style="margin-top:0">No matching tiesääasema</h2>
+          <div class="muted">Looked for weatherStationId in: ${TIESAA_STATIONS.join(", ")}</div>
+        </section>
+      `;
+    stationsEl.appendChild(tieGrid);
+
+    // Meteoblue widget section
+    stationsEl.insertAdjacentHTML("beforeend", `<div class="sectionTitle">Forecast</div>`);
+    const widgetGrid = document.createElement("div");
+    widgetGrid.className = "stationsGrid";
+    widgetGrid.innerHTML = renderMeteoblueCard();
+    stationsEl.appendChild(widgetGrid);
+
+    // ✅ After rendering, wire up archive widgets
+    initCamArchiveUI();
+
+    statusEl.textContent = `Updated: ${new Date().toLocaleTimeString("fi-FI")}`;
+  } catch (e) {
+    statusEl.textContent = "Error";
+    errorEl.textContent = String(e);
+  } finally {
+    refreshBtn.disabled = false;
+  }
+}
+
+refreshBtn.addEventListener("click", fetchData);
+fetchData();
+setInterval(fetchData, REFRESH_SECONDS*1000);
+</script>
+
+</body>
+</html>
