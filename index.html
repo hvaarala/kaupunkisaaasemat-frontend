@@ -464,8 +464,7 @@ const TIESAA_KPIS = [
   ["Air temp", "ILMA"],
   ["Air temp 24h (min–max)", ["ILMAN_LÄMPÖTILA_24H_MIN", "ILMAN_LÄMPÖTILA_24H_MAX"]],
   ["Road temp", "TIE_1"],
-  ["Wind avg", "KESKITUULI"],
-  ["Wind max", "MAKSIMITUULI"]
+  ["Wind (avg–max)", ["KESKITUULI", "MAKSIMITUULI"]]
 ];
 
 function kpi(label, valueHtml) {
@@ -860,6 +859,7 @@ setInterval(fetchData, REFRESH_SECONDS*1000);
 
 </body>
 </html>
+
 
 
 
