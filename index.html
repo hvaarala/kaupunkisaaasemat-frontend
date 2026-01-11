@@ -582,7 +582,7 @@ function renderCityCard(st, isColdestNow) {
   const time = st.sensorValues?.[0]?.measuredTime;
 
   const airObj = pickCity(st.sensorValues, "AIR_TEMPERATURE");
-  upsertAirSnapshot(st.weatherStationId, time, airObj);
+
 
   const kpisHtml = CITY_KPIS.map(([label, key]) => {
     const obj = pickCity(st.sensorValues, key);
@@ -659,7 +659,7 @@ function renderCityCard(st, isColdestNow) {
 
     ${camArchiveHtml}
 
-    ${renderHistoryView(st.weatherStationId)}
+
   </section>`;
 }
 
@@ -862,4 +862,5 @@ setInterval(fetchData, REFRESH_SECONDS*1000);
 
 </body>
 </html>
+
 
