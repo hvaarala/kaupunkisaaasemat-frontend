@@ -634,9 +634,7 @@ function renderCityCard(st, isColdestNow) {
         <div class="camArchiveMeta js-ca-meta"></div>
         <div class="camArchiveErr js-ca-err"></div>
         <div class="camArchiveGrid js-ca-grid"></div>
-        <div class="muted" style="margin-top:8px;">
-          Uses signed URLs from <code>${ARCHIVE_WORKER_BASE}</code>. (Pick a different date if you’re near midnight; folders are UTC.)
-        </div>
+       
       </div>
     `
     : `
@@ -862,5 +860,6 @@ setInterval(fetchData, REFRESH_SECONDS*1000);
 
 </body>
 </html>
+
 
 
